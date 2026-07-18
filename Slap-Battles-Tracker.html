@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slap Battles Tracker by Nervix</title>
+    <style>
+        :root {
+            --bg-color: #0c0a09; --card-bg: #1c1917; --text-main: #f5f5f4; --text-muted: #a8a29e;
+            --accent: #eab308; --success: #22c55e; --modal-bg: rgba(12, 10, 9, 0.95); --border-color: #292524;
+            --card-width: 170px;
+        }
+        /* ТЕМЫ */
+        body.theme-light { --bg-color: #f5f5f4; --card-bg: #ffffff; --text-main: #1c1917; --text-muted: #78716c; --accent: #d97706; --modal-bg: rgba(245, 245, 244, 0.95); --border-color: #d6d3d1; }
+        body.theme-blue { --bg-color: #0f172a; --card-bg: #1e293b; --text-main: #38bdf8; --text-muted: #94a3b8; --accent: #0ea5e9; --modal-bg: rgba(15, 23, 42, 0.95); --border-color: #334155; }
+        body.theme-crimson { --bg-color: #1a0505; --card-bg: #2d0a0a; --text-main: #fca5a5; --text-muted: #f87171; --accent: #ef4444; --success: #ef4444; --modal-bg: rgba(26, 5, 5, 0.95); --border-color: #450a0a; }
+        body.theme-matrix { --bg-color: #051a05; --card-bg: #0a2d0a; --text-main: #86efac; --text-muted: #4ade80; --accent: #22c55e; --success: #22c55e; --modal-bg: rgba(5, 26, 5, 0.95); --border-color: #052e16; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; padding-bottom: 40px; max-width: 900px; margin: 0 auto; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* ШАПКА */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .app-title { font-size: 20px; font-weight: 900; background: linear-gradient(to right, #eab308, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 1px;}
+        .app-subtitle { font-size: 12px; color: var(--text-muted); }
+        
+        .top-right { display: flex; align-items: center; gap: 15px; }
+        .btn-achiev-top { background: var(--card-bg); border: 2px solid var(--accent); color: var(--text-main); font-size: 18px; width: 44px; height: 44px; border-radius: 12px; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; }
+        .btn-achiev-top:hover { transform: scale(1.05); background: var(--accent); color: #000; }
+        .btn-achiev-top:active { transform: scale(0.95); }
+
+        .top-profile-area { display: flex; align-items: center; gap: 10px; cursor: pointer; text-align: right; transition: transform 0.2s; }
+        .top-profile-area:hover { transform: scale(1.02); }
+        .top-profile-info { display: flex; flex-direction: column; justify-content: center; }
+        .top-nickname { font-size: 14px; font-weight: bold; color: var(--text-main); }
+        .top-stats { font-size: 12px; font-weight: bold; color: var(--accent); margin-top: 2px; }
+        .top-title { font-size: 10px; font-weight: 900; margin-top: 2px; text-transform: uppercase; color: var(--accent); }
+        
+        .profile-trigger { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--card-bg); border: 2px solid var(--accent); flex-shrink: 0; }
+        .profile-trigger img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* ПОИСК И ПОЛЗУНОК */
+        .controls-container { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        .search-input { flex: 1; padding: 12px 15px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; }
+        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 8px rgba(234, 179, 8, 0.2); }
+        .slider-container { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 0 10px; height: 43px; width: 100px; }
+        .grid-slider { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        .type-selector { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
+        .type-btn { flex: 1; min-width: 110px; padding: 10px 5px; text-align: center; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; color: var(--text-muted); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .type-btn:hover { background: rgba(255,255,255,0.05); }
+        .type-btn.active { background: var(--accent); color: #000; border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+
+        /* СЕТКА И КАРТОЧКИ ВИКИ */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-width), 1fr)); gap: 12px; width: 100%; }
+        .sb-card { background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease; animation: fadeIn 0.4s ease-out backwards; }
+        .sb-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .sb-card:active { transform: scale(0.96); }
+        .sb-card.collected { border-color: var(--success) !important; background: rgba(34, 197, 94, 0.05); }
+        .sb-card.collected .sb-header { border-bottom-color: var(--success) !important; }
+
+        .sb-header { background: rgba(0,0,0,0.3); color: var(--text-main); text-align: center; font-weight: 900; font-size: 16px; padding: 10px 5px; border-bottom: 2px solid var(--border-color); transition: border-color 0.3s; }
+        .sb-body { padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; flex-grow: 1; justify-content: space-between; }
+        
+        .sb-type-badge { padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        .type-Slap { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid #3b82f6; }
+        .type-Badge { background: rgba(168, 85, 247, 0.2); color: #a855f7; border: 1px solid #a855f7; }
+        .type-Event { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+        .type-Gamepass { background: rgba(234, 179, 8, 0.2); color: #eab308; border: 1px solid #eab308; }
+        
+        .sb-desc { font-size: 10px; color: var(--text-muted); text-align: center; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .sb-price-box { display: flex; width: 100%; background: rgba(0,0,0,0.4); border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); margin-top: 5px; }
+        .sb-price-col { flex: 1; text-align: center; padding: 6px 2px; font-weight: 800; font-size: 12px; }
+        .sb-price-slaps { color: #facc15; } /* Золотой для шлепков */
+        .sb-price-robux { color: #22c55e; } /* Зеленый для робуксов */
+
+        /* МОДАЛКИ */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--bg-color); width: 100%; max-width: 450px; border-radius: 20px; padding: 25px; border: 1px solid var(--border-color); position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .close-btn { position: absolute; top: 16px; right: 20px; font-size: 24px; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
+        .close-btn:hover { color: var(--text-main); transform: rotate(90deg); }
+        .modal-title { font-size: 24px; font-weight: 900; text-align: center; margin-bottom: 15px; color: var(--text-main); }
+        
+        .btn { padding: 14px; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; border: none; color: #fff; width: 100%; margin-top: 10px; display: block; text-decoration: none; text-align: center; transition: 0.2s;}
+        .btn:active { transform: scale(0.97); }
+        .btn-save { background: var(--success); color: #fff; }
+        .btn-tg { background: #0088cc; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .btn-boosty { background: linear-gradient(90deg, #f97316, #ef4444); display: flex; justify-content: center; align-items: center; gap: 8px;}
+        
+        .status-group { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+        .checkbox-label { display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 15px; cursor: pointer; font-weight: bold; }
+        .checkbox-label input { width: 22px; height: 22px; accent-color: var(--success); cursor: pointer;}
+        .input-field { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 10px; font-size: 14px; outline: none; margin-top: 5px; transition: 0.2s;}
+        .input-field:focus { border-color: var(--accent); }
+
+        .achievements-grid { display: grid; gap: 10px; margin-top: 10px; margin-bottom: 15px;}
+        .achiev-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; opacity: 0.5; filter: grayscale(100%); transition: 0.3s; }
+        .achiev-card.unlocked { opacity: 1; filter: none; border-color: var(--success); background: rgba(34, 197, 94, 0.05); }
+        .achiev-icon { font-size: 28px; }
+        .achiev-text h4 { font-size: 14px; color: var(--text-main); margin-bottom: 2px;}
+        .achiev-text p { font-size: 11px; color: var(--text-muted); }
+
+        .val-box { text-align: center; border: 1px solid var(--accent); background: rgba(234, 179, 8, 0.05); }
+        .val-title { color: var(--accent); font-size: 13px; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+        .val-slaps { font-size: 24px; font-weight: 900; color: #facc15; margin-bottom: 4px; }
+    </style>
+</head>
+<body class="theme-dark">
+
+    <header class="top-bar">
+        <div>
+            <h1 class="app-title">SB Tracker</h1>
+            <div class="app-subtitle" id="t-subtitle">Slap Battles Glove Collection</div>
+        </div>
+        <div class="top-right">
+            <button class="btn-achiev-top" onclick="openAchievementsModal()" title="Достижения">🏆</button>
+            <div class="top-profile-area" onclick="openProfileModal()">
+                <div class="top-profile-info">
+                    <div class="top-nickname" id="display-nickname">Slapper</div>
+                    <div class="top-stats" id="display-stats">Собрано: 0</div>
+                    <div class="top-title" id="display-title">Новичок</div>
+                </div>
+                <div class="profile-trigger">
+                    <img id="display-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23eab308'%3E%3Cpath d='M20.5 6c-2.61.7-5.67 1-8.5 1s-5.89-.3-8.5-1L3 8c1.86.5 4 .83 6 1v13h2v-6h2v6h2V9c2-.17 4.14-.5 6-1l-.5-2zM12 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z'/%3E%3C/svg%3E">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="controls-container">
+        <input type="text" id="search-input" class="search-input" placeholder="Найти перчатку..." oninput="renderItems()">
+        <div class="slider-container" title="Размер карточек">
+            <input type="range" id="grid-size" class="grid-slider" min="120" max="250" value="170" oninput="updateGridSize(this.value)">
+        </div>
+    </div>
+
+    <div class="type-selector">
+        <div class="type-btn active" onclick="setCategory('Slap')" id="btn-Slap">🖐️ За шлепки</div>
+        <div class="type-btn" onclick="setCategory('Badge')" id="btn-Badge">🏅 За бейджи</div>
+        <div class="type-btn" onclick="setCategory('Event')" id="btn-Event">🎉 Ивенты/Лимит</div>
+        <div class="type-btn" onclick="setCategory('Gamepass')" id="btn-Gamepass">💸 Донат/Прочее</div>
+    </div>
+
+    <div class="grid" id="items-grid"></div>
+
+    <!-- МОДАЛКА ПРЕДМЕТА -->
+    <div class="modal-overlay" id="item-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('item-modal')">&times;</span>
+            <h2 class="modal-title" id="modal-name">Название</h2>
+            
+            <div class="status-group" style="text-align: center; padding: 20px;">
+                <div id="modal-type-badge" class="sb-type-badge" style="display: inline-block; margin-bottom: 10px;">TYPE</div>
+                <div id="modal-req-text" style="font-size: 13px; color: var(--text-main); line-height: 1.5; margin-bottom: 15px;"></div>
+                <div id="modal-price-box" style="font-size: 16px; font-weight: 900; color: #facc15;"></div>
+            </div>
+            
+            <div class="status-group">
+                <label class="checkbox-label"><input type="checkbox" id="mod-collected"> <span id="t-collect-lbl">Отметить как полученное</span></label>
+                <div><input type="text" class="input-field" id="mod-notes" placeholder="Заметки (комбинации, секреты)"></div>
+            </div>
+            <button class="btn btn-save" onclick="saveItem()" id="t-save-item">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПРОФИЛЯ -->
+    <div class="modal-overlay" id="profile-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('profile-modal')">&times;</span>
+            <h2 class="modal-title" id="t-prof-title">Профиль игрока</h2>
+            
+            <div class="status-group val-box">
+                <div class="val-title" id="t-val-title">Общая ценность инвентаря</div>
+                <div class="val-slaps">👏 <span id="prof-val-slaps">0</span> Slaps</div>
+            </div>
+
+            <div class="status-group">
+                <input type="text" id="prof-name" class="input-field" placeholder="Никнейм">
+                <input type="text" id="prof-avatar" class="input-field" placeholder="Ссылка на аватар (URL)">
+                
+                <h3 style="font-size: 12px; color: var(--text-muted); margin-top: 10px; margin-bottom: 5px;">Титул:</h3>
+                <select id="prof-title-select" class="input-field"></select>
+
+                <h3 style="font-size: 12px; color: var(--text-muted); margin-top: 10px; margin-bottom: 5px;">Тема оформления:</h3>
+                <select id="prof-theme" class="input-field">
+                    <option value="theme-dark">Тёмная (Dark)</option>
+                    <option value="theme-light">Светлая (Light)</option>
+                    <option value="theme-blue">Неон (Blue)</option>
+                    <option value="theme-crimson">Кровавая (Crimson)</option>
+                    <option value="theme-matrix">Матрица (Matrix)</option>
+                </select>
+            </div>
+
+            <a href="https://boosty.to/nervivdev/about" target="_blank" class="btn btn-boosty">🔥 Поддержать (Boosty)</a>
+            <a href="https://t.me/SugarNarkoman" target="_blank" class="btn btn-tg">Связаться в Telegram</a>
+            
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="btn" style="background: #3b82f6; margin-top: 0; padding: 10px; font-size: 13px;" onclick="exportData()">💾 Бэкап</button>
+                <button class="btn" style="background: #a855f7; margin-top: 0; padding: 10px; font-size: 13px;" onclick="document.getElementById('import-file').click()">📂 Импорт</button>
+            </div>
+            <input type="file" id="import-file" style="display: none" accept=".json" onchange="importData(event)">
+            
+            <button class="btn btn-save" onclick="saveProfile()">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ДОСТИЖЕНИЙ -->
+    <div class="modal-overlay" id="achievements-modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <span class="close-btn" onclick="closeModal('achievements-modal')">&times;</span>
+            <h2 class="modal-title">🏆 Достижения Slap Battles</h2>
+            <div class="achievements-grid" id="full-achievements-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'success') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.setValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            }
+        }
+
+        // ПОЛНАЯ БАЗА SLAP BATTLES (ИЗ ТВОЕГО ДАМПА)
+        const rawData = [
+            { "id": "Default", "mainType": "Starter", "reqEn": "Default glove, automatically available in-game" },
+            { "id": "Diamond", "mainType": "Slap", "slapsRequired": "45", "reqEn": "Unlock at 45 Slaps" },
+            { "id": "ZZZZZZZ", "mainType": "Slap", "slapsRequired": "70", "reqEn": "Unlock at 70 Slaps" },
+            { "id": "Extended", "mainType": "Slap", "slapsRequired": "105", "reqEn": "Unlock at 105 Slaps (extended reach)" },
+            { "id": "Brick", "mainType": "Slap", "slapsRequired": "150", "reqEn": "Unlock at 150 Slaps; ability to place a brick" },
+            { "id": "Snow", "mainType": "Slap", "slapsRequired": "195", "reqEn": "Unlock at 195 Slaps; chance to freeze opponents" },
+            { "id": "Spin", "mainType": "Slap", "reqEn": "Slap-type glove" },
+            { "id": "Stick", "mainType": "Slap", "reqEn": "Slap-type glove" },
+            { "id": "Pull", "mainType": "Slap", "reqEn": "Slap-type glove (pull effect)" },
+            { "id": "Flash", "mainType": "Slap", "reqEn": "Slap-type glove (speed/flash effect)" },
+            { "id": "Stilts", "mainType": "Slap", "reqEn": "Slap-type glove (reach/height effect)" },
+            { "id": "Spring", "mainType": "Slap", "reqEn": "Slap-type glove (spring/jump effect)" },
+            { "id": "Swapper", "mainType": "Slap", "reqEn": "Slap-type glove (swap effect)" },
+            { "id": "Screwdriver", "mainType": "Slap", "reqEn": "Slap-type glove (see wiki)" },
+            { "id": "Bull", "mainType": "Slap", "reqEn": "Slap-type glove" },
+            { "id": "Dice", "mainType": "Slap", "reqEn": "Slap-type glove (random effects)" },
+            { "id": "Ghost", "mainType": "Slap", "reqEn": "Slap-type glove (phasing/ghost effect)" },
+            { "id": "Thanos", "mainType": "Badge", "reqEn": "Badge/event glove; see source for exact requirements" },
+            { "id": "Stun", "mainType": "Slap", "reqEn": "Slap-type glove (stun effect)" },
+            { "id": "LOLBOMB", "mainType": "Slap", "reqEn": "Slap-type glove (explosive)" },
+            { "id": "Za Hando", "mainType": "Slap", "reqEn": "Slap-type glove (special effect)" },
+            { "id": "Fort", "mainType": "Slap", "reqEn": "Slap-type glove (build/defense)" },
+            { "id": "Magnet", "mainType": "Slap", "reqEn": "Slap-type glove (attracts players/objects)" },
+            { "id": "Pusher", "mainType": "Slap", "reqEn": "Slap-type glove (push effect)" },
+            { "id": "Anchor", "mainType": "Slap", "reqEn": "Slap-type glove (anchor effect)" },
+            { "id": "Space", "mainType": "Slap", "reqEn": "Slap-type glove (space/float effect)" },
+            { "id": "Boomerang", "mainType": "Slap", "reqEn": "Slap-type glove (boomerang attack)" },
+            { "id": "Speedrun", "mainType": "Slap", "reqEn": "Slap-type glove (speed boost)" },
+            { "id": "Mail", "mainType": "Slap", "reqEn": "Slap-type glove (mail/throw effect)" },
+            { "id": "Thick", "mainType": "Slap", "reqEn": "Slap-type glove (increased mass/power)" },
+            { "id": "Squid", "mainType": "Slap", "reqEn": "Slap-type glove (tentacle/drag effect)" },
+            { "id": "MR", "mainType": "Slap", "reqEn": "Slap-type glove" },
+            { "id": "Hive", "mainType": "Slap", "reqEn": "Slap-type glove (spawns bees/attacks)" },
+            { "id": "Reaper", "mainType": "Slap", "reqEn": "Slap-type glove (reaper/instant damage)" },
+            { "id": "Baby", "mainType": "Slap", "reqEn": "Slap-type glove (baby effect)" },
+            { "id": "Replica", "mainType": "Slap", "reqEn": "Slap-type glove (replica/clone mechanic)" },
+            { "id": "Mace", "mainType": "Slap", "reqEn": "Slap-type glove (melee heavy damage)" },
+            { "id": "Defense", "mainType": "Slap", "reqEn": "Slap-type glove (defensive bonuses)" },
+            { "id": "Offense", "mainType": "Slap", "reqEn": "Slap-type glove (offensive bonuses)" },
+            { "id": "Killstreak", "mainType": "Badge", "reqEn": "Badge glove; progress-based (gets stronger with kills)." },
+            { "id": "Reverse", "mainType": "Slap", "reqEn": "Slap-type glove (reverse/reflect effect)" },
+            { "id": "Duelist", "mainType": "Slap", "reqEn": "Slap-type glove (1v1/duel bonuses)" },
+            { "id": "Ice", "mainType": "Slap", "reqEn": "Slap-type glove (freeze effect)" },
+            { "id": "Gummy", "mainType": "Slap", "reqEn": "Slap-type glove (sticky/gummy effect)" },
+            { "id": "Adios", "mainType": "Slap", "reqEn": "Slap-type glove (teleport/leave effect)" },
+            { "id": "Blocked", "mainType": "Slap", "reqEn": "Slap-type glove (defensive/block mechanic)" },
+            { "id": "Divert", "mainType": "Slap", "reqEn": "Slap-type glove (redirects attacks/effects)" },
+            { "id": "Engineer", "mainType": "Slap", "reqEn": "Slap-type glove (build/construct related)" },
+            { "id": "Rocky", "mainType": "Slap", "reqEn": "Slap-type glove (heavy/rock effect)" },
+            { "id": "Conveyor", "mainType": "Slap", "reqEn": "Slap-type glove (conveyor/object movement)" },
+            { "id": "Phantom", "mainType": "Slap", "reqEn": "Slap-type glove (intangible/ghost mechanic)" },
+            { "id": "Leafblower", "mainType": "Slap", "reqEn": "Slap-type glove (wind/push effect)" },
+            { "id": "El Gato", "mainType": "Slap", "reqEn": "Slap-type glove (cat-themed effect)" },
+            { "id": "Wormhole", "mainType": "Slap", "reqEn": "Slap-type glove (teleport/warp effect)" },
+            { "id": "Shackle", "mainType": "Slap", "reqEn": "Slap-type glove (binds or roots opponents)" },
+            { "id": "Flick", "mainType": "Slap", "reqEn": "Slap-type glove (small fast hits/knockback)" },
+            { "id": "STOP", "mainType": "Slap", "reqEn": "Slap-type glove (stop/time control effect)" },
+            { "id": "Equalizer", "mainType": "Slap", "reqEn": "Slap-type glove (balances stats/effects)" },
+            { "id": "Track", "mainType": "Slap", "reqEn": "Slap-type glove (tracking/projectile effect)" },
+            { "id": "Stalker", "mainType": "Slap", "reqEn": "Slap-type glove (stealth/follow mechanic)" },
+            { "id": "Prop", "mainType": "Slap", "reqEn": "Slap-type glove (spawns props or uses environment)" },
+            { "id": "Bob", "mainType": "Slap", "reqEn": "Slap-type glove (unique attack pattern)" },
+            { "id": "Bomb", "mainType": "Slap", "reqEn": "Slap-type glove (explosive ability)" },
+            { "id": "Bubble", "mainType": "Slap", "reqEn": "Slap-type glove (bubble/shield mechanic)" },
+            { "id": "Chain", "mainType": "Slap", "reqEn": "Slap-type glove (chain/hook attacks)" },
+            { "id": "Coil", "mainType": "Slap", "reqEn": "Slap-type glove (spring/coil effects)" },
+            { "id": "Custom", "mainType": "Slap", "reqEn": "Custom/customizable glove (special unlock or event)" },
+            { "id": "Disarm", "mainType": "Slap", "reqEn": "Slap-type glove (disables other gloves/abilities)" },
+            { "id": "Dream", "mainType": "Slap", "reqEn": "Slap-type glove (dream/illusion effects)" },
+            { "id": "Elude", "mainType": "Slap", "reqEn": "Slap-type glove (evasion/teleport dodge)" },
+            { "id": "Error", "mainType": "Slap", "reqEn": "Slap-type glove (glitch/bug-like effects); often rare" },
+            { "id": "Fish", "mainType": "Slap", "reqEn": "Slap-type glove (fish/throw mechanic)" },
+            { "id": "Golden", "mainType": "Slap", "reqEn": "High-tier/rare glove (often event or badge)" },
+            { "id": "Overkill", "mainType": "Badge", "reqEn": "Badge glove (rare/high power instantaneous KO)" },
+            { "id": "Orbit", "mainType": "Slap", "reqEn": "Slap-type glove (orbiting projectiles)" },
+            { "id": "Psycho", "mainType": "Slap", "reqEn": "Slap-type glove (chaotic/random high-damage effects)" },
+            { "id": "Retro", "mainType": "Slap", "reqEn": "Slap-type glove (retro/throwback theme)" },
+            { "id": "Spectator", "mainType": "Gamepass", "priceRobux": "Varies", "reqEn": "Often tied to Gamepass/VIP" },
+            { "id": "Leash", "mainType": "Slap", "reqEn": "Slap-type glove (tether/pull control)" },
+            { "id": "Link", "mainType": "Slap", "reqEn": "Slap-type glove (links players or effects)" },
+            { "id": "Counter", "mainType": "Slap", "reqEn": "Slap-type glove (counterattack mechanic)" },
+            { "id": "Detonator", "mainType": "Slap", "reqEn": "Slap-type glove (timed explosive ability)" },
+            { "id": "God's Hand", "mainType": "Badge", "reqEn": "High-tier badge glove (very rare/powerful)" },
+            { "id": "Rattlebones", "mainType": "Slap", "reqEn": "Slap-type glove (skeleton/bone attacks)" },
+            { "id": "Recall", "mainType": "Slap", "reqEn": "Slap-type glove (recall/teleport back mechanic)" },
+            { "id": "Slapple", "mainType": "Slap", "reqEn": "Slap-type glove (enhanced slap action)" },
+            { "id": "Tableflip", "mainType": "Slap", "reqEn": "Slap-type glove (flips tables/large objects)" },
+            { "id": "Track (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Track glove" },
+            { "id": "Counter (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded variant" },
+            { "id": "Recall (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded variant" },
+            { "id": "Bubble (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded variant" },
+            { "id": "Orbit (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded variant" },
+            { "id": "Bomb (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded explosive glove" },
+            { "id": "Custom (Event)", "mainType": "Event", "reqEn": "Event-limited custom glove" },
+            { "id": "VIP Glove", "mainType": "VIP", "priceRobux": "Varies", "reqEn": "Unlocked by owning VIP/Gamepass" },
+            { "id": "Admin Glove", "mainType": "Admin", "reqEn": "Developer/admin-only glove" },
+            { "id": "Limited Edition", "mainType": "Limited", "reqEn": "Limited-time glove (event/shop)" },
+            { "id": "Cloud", "mainType": "Slap", "reqEn": "Slap-type glove (cloud/float mechanics)" },
+            { "id": "Obby", "mainType": "Slap", "reqEn": "Slap-type glove (obby/parkour mechanics)" },
+            { "id": "Run", "mainType": "Slap", "reqEn": "Slap-type glove (speed/run bonuses)" },
+            { "id": "Ultra Instinct", "mainType": "Slap", "reqEn": "High-tier glove; dodge/instant abilities" },
+            { "id": "Grappler", "mainType": "Slap", "reqEn": "Slap-type glove (hook/grapple mechanic)" },
+            { "id": "Hookshot", "mainType": "Slap", "reqEn": "Slap-type glove (pull/zip to players)" },
+            { "id": "Banana", "mainType": "Slap", "reqEn": "Fun/novelty glove (banana/throw mechanic)" },
+            { "id": "Barrel", "mainType": "Slap", "reqEn": "Slap-type glove (barrel/throw effect)" },
+            { "id": "Beast", "mainType": "Slap", "reqEn": "Slap-type glove (beast/feral bonuses)" },
+            { "id": "Blade", "mainType": "Slap", "reqEn": "Slap-type glove (blade/melee damage)" },
+            { "id": "Blizzard", "mainType": "Slap", "reqEn": "Slap-type glove (area freeze/weather effect)" },
+            { "id": "Bouncer", "mainType": "Slap", "reqEn": "Slap-type glove (bounce/knockback mechanic)" },
+            { "id": "Bully", "mainType": "Slap", "reqEn": "Slap-type glove (push/force effect)" },
+            { "id": "Cannon", "mainType": "Slap", "reqEn": "Slap-type glove (projectile/cannon attack)" },
+            { "id": "Chroma", "mainType": "Cosmetic", "reqEn": "Cosmetic/rarity variant of a glove" },
+            { "id": "Comet", "mainType": "Slap", "reqEn": "Slap-type glove (meteor/projectile effect)" },
+            { "id": "Crusher", "mainType": "Slap", "reqEn": "Slap-type glove (heavy crushing attacks)" },
+            { "id": "Decoy", "mainType": "Slap", "reqEn": "Slap-type glove (spawn decoys/illusions)" },
+            { "id": "Dinosaur", "mainType": "Slap", "reqEn": "Theme glove (dino mechanic)" },
+            { "id": "Dragon", "mainType": "Slap", "reqEn": "Slap-type glove (fire/breath attack)" },
+            { "id": "Drill", "mainType": "Slap", "reqEn": "Slap-type glove (piercing/drill effect)" },
+            { "id": "Echo", "mainType": "Slap", "reqEn": "Slap-type glove (echo/repeat attacks)" },
+            { "id": "Electro", "mainType": "Slap", "reqEn": "Slap-type glove (electric/stun effects)" },
+            { "id": "EMP", "mainType": "Slap", "reqEn": "Slap-type glove (disable electronics)" },
+            { "id": "Energy", "mainType": "Slap", "reqEn": "Slap-type glove (energy/projectile buffs)" },
+            { "id": "Enlarge", "mainType": "Slap", "reqEn": "Slap-type glove (growth/increase size)" },
+            { "id": "Fling", "mainType": "Slap", "reqEn": "Slap-type glove (powerful fling/launch ability)" },
+            { "id": "Flux", "mainType": "Slap", "reqEn": "Slap-type glove (flux/unstable effects)" },
+            { "id": "Freeze", "mainType": "Slap", "reqEn": "Slap-type glove (freeze effect)" },
+            { "id": "Fire", "mainType": "Slap", "reqEn": "Slap-type glove (burn/damage-over-time effect)" },
+            { "id": "Giga", "mainType": "Slap", "reqEn": "Slap-type glove (gigantic/powerful variant)" },
+            { "id": "Gravity", "mainType": "Slap", "reqEn": "Slap-type glove (alter gravity)" },
+            { "id": "Gust", "mainType": "Slap", "reqEn": "Slap-type glove (wind push/pull effects)" },
+            { "id": "Hammer", "mainType": "Slap", "reqEn": "Slap-type glove (heavy melee/hammering attacks)" },
+            { "id": "Heal", "mainType": "Slap", "reqEn": "Slap-type glove (healing or regen mechanic)" },
+            { "id": "Hornet", "mainType": "Slap", "reqEn": "Slap-type glove (small projectile swarm like bees)" },
+            { "id": "Iceberg", "mainType": "Slap", "reqEn": "Slap-type glove (large freeze/environment effect)" },
+            { "id": "Ignite", "mainType": "Slap", "reqEn": "Slap-type glove (ignite/burn effects)" },
+            { "id": "Invisible", "mainType": "Slap", "reqEn": "Slap-type glove (invisibility/stealth mechanic)" },
+            { "id": "Ion", "mainType": "Slap", "reqEn": "Slap-type glove (ion/projectile effects)" },
+            { "id": "Jolt", "mainType": "Slap", "reqEn": "Slap-type glove (electric burst/short stun)" },
+            { "id": "Katana", "mainType": "Slap", "reqEn": "Slap-type glove (blade/katana style)" },
+            { "id": "Kraken", "mainType": "Slap", "reqEn": "Slap-type glove (tentacle/area control)" },
+            { "id": "Laser", "mainType": "Slap", "reqEn": "Slap-type glove (beam/laser projectile)" },
+            { "id": "Launcher", "mainType": "Slap", "reqEn": "Slap-type glove (launch projectiles/players)" },
+            { "id": "Leviathan", "mainType": "Slap", "reqEn": "Slap-type glove (large aquatic theme)" },
+            { "id": "Lightning", "mainType": "Slap", "reqEn": "Slap-type glove (chain lightning/electric effect)" },
+            { "id": "Nuke", "mainType": "Slap", "reqEn": "Slap-type glove (massive AoE damage)" },
+            { "id": "Oblivion", "mainType": "Slap", "reqEn": "Slap-type glove (void/blackhole mechanics)" },
+            { "id": "Omega", "mainType": "Slap", "reqEn": "Top-tier/rare glove (omega effect)" },
+            { "id": "Paper", "mainType": "Slap", "reqEn": "Slap-type glove (paper/throwable mechanic)" },
+            { "id": "Phoenix", "mainType": "Slap", "reqEn": "Slap-type glove (revive/respawn-related effects)" },
+            { "id": "Pin", "mainType": "Slap", "reqEn": "Slap-type glove (pin/root mechanic)" },
+            { "id": "Plasma", "mainType": "Slap", "reqEn": "Slap-type glove (plasma projectile/damage)" },
+            { "id": "Plunger", "mainType": "Slap", "reqEn": "Slap-type glove (stick/attach mechanic)" },
+            { "id": "Portal", "mainType": "Slap", "reqEn": "Slap-type glove (creates teleport portals)" },
+            { "id": "Pumpkin", "mainType": "Event", "reqEn": "Event/seasonal glove (Halloween themed)" },
+            { "id": "Quake", "mainType": "Slap", "reqEn": "Slap-type glove (groundquake/AoE knockback)" },
+            { "id": "Railgun", "mainType": "Slap", "reqEn": "Slap-type glove (high-speed projectile)" },
+            { "id": "Repulsor", "mainType": "Slap", "reqEn": "Slap-type glove (repel/push area effect)" },
+            { "id": "Ricochet", "mainType": "Slap", "reqEn": "Slap-type glove (bouncing projectiles)" },
+            { "id": "Rocket", "mainType": "Slap", "reqEn": "Slap-type glove (rocket/launch attack)" },
+            { "id": "Sabre", "mainType": "Slap", "reqEn": "Slap-type glove (sabre/sword melee)" },
+            { "id": "Saw", "mainType": "Slap", "reqEn": "Slap-type glove (saw/continuous damage)" },
+            { "id": "Shadow", "mainType": "Slap", "reqEn": "Slap-type glove (shadow/teleport themes)" },
+            { "id": "Cloud (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded variant of Cloud glove" },
+            { "id": "Obby (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded Obby glove" },
+            { "id": "Run (Master)", "mainType": "Slap", "reqEn": "Mastery/upgraded Run glove" },
+            { "id": "Ultra Instinct (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Ultra Instinct" },
+            { "id": "Blade (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Blade" },
+            { "id": "Bouncer (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Bouncer" },
+            { "id": "Bully (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Bully" },
+            { "id": "Cannon (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Cannon" },
+            { "id": "Crusher (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Crusher" },
+            { "id": "Decoy (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Decoy" },
+            { "id": "Dinosaur (Event)", "mainType": "Event", "reqEn": "Themed glove (dinosaur/dragon) - limited" },
+            { "id": "Dragon (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Dragon" },
+            { "id": "Echo (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Echo glove" },
+            { "id": "Electro (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Electro" },
+            { "id": "EMP (Event)", "mainType": "Event", "reqEn": "Glove that disables effects - rare/event" },
+            { "id": "Energy (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Energy" },
+            { "id": "Enlarge (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Enlarge" },
+            { "id": "Fling (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Fling" },
+            { "id": "Flux (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Flux" },
+            { "id": "Freeze (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Freeze" },
+            { "id": "Fire (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Fire" },
+            { "id": "Giga (Event)", "mainType": "Event", "reqEn": "Large/gigantic theme glove - see wiki" },
+            { "id": "Gravity (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Gravity" },
+            { "id": "Gust (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Gust" },
+            { "id": "Hammer (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Hammer" },
+            { "id": "Heal (Support)", "mainType": "Slap", "reqEn": "Support glove (healing) - see wiki" },
+            { "id": "Hornet (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Hornet" },
+            { "id": "Iceberg (Event)", "mainType": "Event", "reqEn": "Large freeze effect - limited/event" },
+            { "id": "Ignite (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Ignite" },
+            { "id": "Invisible (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Invisible" },
+            { "id": "Ion (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Ion" },
+            { "id": "Jolt (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Jolt" },
+            { "id": "Katana (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Katana" },
+            { "id": "Kraken (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Kraken" },
+            { "id": "Laser (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Laser" },
+            { "id": "Launcher (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Launcher" },
+            { "id": "Leviathan (Event)", "mainType": "Event", "reqEn": "Large aquatic theme glove - limited" },
+            { "id": "Lightning (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Lightning" },
+            { "id": "Nuke (Limited)", "mainType": "Limited", "reqEn": "Massive AoE damage - limited/rare" },
+            { "id": "Oblivion (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Oblivion" },
+            { "id": "Omega (Limited)", "mainType": "Limited", "reqEn": "Top tier rare glove - limited/badge" },
+            { "id": "Paper (Novelty)", "mainType": "Slap", "reqEn": "Novelty paper theme" },
+            { "id": "Phoenix (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Phoenix" },
+            { "id": "Pin (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Pin" },
+            { "id": "Plasma (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Plasma" },
+            { "id": "Plunger (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Plunger" },
+            { "id": "Portal (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Portal" },
+            { "id": "Pumpkin (Halloween)", "mainType": "Event", "reqEn": "Halloween themed glove - limited" },
+            { "id": "Quake (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Quake" },
+            { "id": "Railgun (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Railgun" },
+            { "id": "Repulsor (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Repulsor" },
+            { "id": "Ricochet (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Ricochet" },
+            { "id": "Rocket (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Rocket" },
+            { "id": "Sabre (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Sabre" },
+            { "id": "Saw (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Saw" },
+            { "id": "Shadow (Master)", "mainType": "Slap", "reqEn": "Mastery variant of Shadow" },
+            { "id": "Void", "mainType": "Slap", "reqEn": "Void/blackhole mechanics" },
+            { "id": "Time", "mainType": "Slap", "reqEn": "Time manipulation (slow/stop)" },
+            { "id": "Clock", "mainType": "Slap", "reqEn": "Time mechanic; event/badge possible" },
+            { "id": "Mirror", "mainType": "Slap", "reqEn": "Reflects attacks/random effects" },
+            { "id": "Gravity Well", "mainType": "Slap", "reqEn": "Creates gravity trap/pulls players" },
+            { "id": "Siphon", "mainType": "Slap", "reqEn": "Absorb HP/energy from opponents" },
+            { "id": "Vortex", "mainType": "Slap", "reqEn": "Vortex/AoE effect" },
+            { "id": "Berserk", "mainType": "Slap", "reqEn": "Increases damage/speed on activation" },
+            { "id": "Juggernaut", "mainType": "Slap", "reqEn": "Heavy armor/strength - rare/high level" },
+            { "id": "Sentry", "mainType": "Slap", "reqEn": "Spawns a turret/sentry object" },
+            { "id": "Sentinel", "mainType": "Slap", "reqEn": "Defensive/static glove (shield/sentinel)" },
+            { "id": "Guardian", "mainType": "Slap", "reqEn": "Guardian/support - see wiki" },
+            { "id": "Monarch", "mainType": "Limited", "reqEn": "Rare/theme glove (limited/badge)" },
+            { "id": "Emperor", "mainType": "Limited", "reqEn": "Top limited/event/badge glove" },
+            { "id": "Collector", "mainType": "Slap", "reqEn": "Collects/hoards items/slaps" },
+            { "id": "Archivist", "mainType": "Event", "reqEn": "Event glove (archive/collection)" },
+            { "id": "Specter", "mainType": "Slap", "reqEn": "Phantom/ghost: pass through players/objects" },
+            { "id": "Echoes", "mainType": "Slap", "reqEn": "Echo/repeating attacks" },
+            { "id": "Nova", "mainType": "Slap", "reqEn": "Explosive AoE (nova/rare)" },
+            { "id": "Pulse", "mainType": "Slap", "reqEn": "Pulse/knockback around the player" },
+            { "id": "Shredder", "mainType": "Slap", "reqEn": "Constant/slashing damage" },
+            { "id": "Rift", "mainType": "Slap", "reqEn": "Creates a rift/portal - teleport mechanic" },
+            { "id": "Warden", "mainType": "Slap", "reqEn": "Guard/area control" },
+            { "id": "Requiem", "mainType": "Slap", "reqEn": "Theme/rare glove, often with mass effects" },
+            { "id": "Nemesis", "mainType": "Badge", "reqEn": "Badge glove related to achievements/kills" },
+            { "id": "Paradox", "mainType": "Slap", "reqEn": "Paradoxical effects/teleport manipulation" },
+            { "id": "Catalyst", "mainType": "Slap", "reqEn": "Speed buff/amplifier for other effects" },
+            { "id": "Anomaly", "mainType": "Slap", "reqEn": "Anomaly: unstable/random effects" },
+            { "id": "Entropy", "mainType": "Slap", "reqEn": "Reduces/degrades opponent parameters" },
+            { "id": "Maelstrom", "mainType": "Slap", "reqEn": "Strong vortex/AoE effect - rare/master" },
+            { "id": "Puppet", "mainType": "Slap", "reqEn": "Controls or pulls players/NPCs" },
+            { "id": "Vanguard", "mainType": "Slap", "reqEn": "Vanguard/combat buff" },
+            { "id": "Wisp", "mainType": "Slap", "reqEn": "Small spirits/projections that deal damage" },
+            { "id": "Zenith", "mainType": "Limited", "reqEn": "Limited top-tier glove - event/rarity" },
+            { "id": "Aegis", "mainType": "Badge", "reqEn": "Badge glove (shield/defense)" },
+            { "id": "Paladin", "mainType": "Slap", "reqEn": "Holy/defense theme (heals/shields)" },
+            { "id": "Rogue", "mainType": "Slap", "reqEn": "Stealth/critical damage" },
+            { "id": "Assassin", "mainType": "Badge", "reqEn": "Badge/kill-focused glove" },
+            { "id": "Hunter", "mainType": "Slap", "reqEn": "Target tracking/hit bonuses" },
+            { "id": "Tracker", "mainType": "Slap", "reqEn": "Tracks opponents/marks" },
+            { "id": "Beacon", "mainType": "Slap", "reqEn": "Meta-glove: sets beacons/spawn points" },
+            { "id": "Oracle", "mainType": "Slap", "reqEn": "Divination: shows opponent weak points" },
+            { "id": "Wraith", "mainType": "Slap", "reqEn": "Translucent phantom/evasion" },
+            { "id": "Sunder", "mainType": "Slap", "reqEn": "Armor break/defense reduction" },
+            { "id": "Fable", "mainType": "Event", "reqEn": "Fairy tale/themed glove - event/limited" },
+            { "id": "Legacy", "mainType": "Limited", "reqEn": "Legacy/holiday glove - rare/limited" },
+            { "id": "Prototype", "mainType": "Slap", "reqEn": "Experimental/early variant glove" },
+            { "id": "Omega (Master)", "mainType": "Slap", "reqEn": "Master variant of Omega (top tier)" },
+            { "id": "God's Hand (Master)", "mainType": "Badge", "reqEn": "Master/upgraded variant of God's Hand" },
+            { "id": "Golden (Master)", "mainType": "Slap", "reqEn": "Upgraded golden variant - rare/badge" },
+            { "id": "Overkill (Master)", "mainType": "Badge", "reqEn": "Master variant of Overkill" },
+            { "id": "Replica (Master)", "mainType": "Slap", "reqEn": "Master Replica: cloning/copying enhanced" }
+        ];
+
+        // Ключи сохранения для Slap Battles (чтобы не пересекались с другими трекерами)
+        const KEYS = { PRO: 'sb_pro_v1', DET: 'sb_det_v1' };
+        let profile = JSON.parse(localStorage.getItem(KEYS.PRO)) || { name: 'Slapper', avatar: '', theme: 'theme-dark', title: 'tit_1' };
+        let itemDetails = JSON.parse(localStorage.getItem(KEYS.DET)) || {};
+        
+        let currentFilter = 'Slap'; // Вкладка по умолчанию
+        let currentEditingId = null;
+
+        const ACHIEVEMENTS = [
+            { id: 'a1', icon: '🖐️', title: 'Первый шлепок', desc: 'Собери 1 любую перчатку', chk: (s, v) => s.total >= 1, rew: 'tit_2' },
+            { id: 'a2', icon: '🎖️', title: 'Охотник за бейджами', desc: 'Собери 10 перчаток за бейджи', chk: (s, v) => s.Badge >= 10, rew: 'tit_3' },
+            { id: 'a3', icon: '💰', title: 'Спонсор', desc: 'Купи 2 донатные перчатки', chk: (s, v) => s.Gamepass >= 2, rew: 'tit_4' },
+            { id: 'a4', icon: '👑', title: 'Богач', desc: 'Инвентарь на 5,000 шлепков', chk: (s, v) => v.slaps >= 5000, rew: 'tit_5' },
+            { id: 'a5', icon: '🌌', title: 'Бог Шлепков', desc: 'Инвентарь на 50,000 шлепков', chk: (s, v) => v.slaps >= 50000, rew: 'tit_6' },
+            { id: 'a6', icon: '💯', title: 'Коллекционер', desc: 'Собери 50 перчаток', chk: (s, v) => s.total >= 50, rew: 'tit_7' }
+        ];
+
+        const TITLES = {
+            'tit_1': 'Новичок', 'tit_2': 'Боец', 'tit_3': 'Охотник', 
+            'tit_4': 'Спонсор', 'tit_5': 'Магнат', 'tit_6': 'Бог Шлепков', 'tit_7': 'Легенда'
+        };
+
+        function getCategory(mainType) {
+            if (mainType === 'Slap' || mainType === 'Starter') return 'Slap';
+            if (mainType === 'Badge') return 'Badge';
+            if (mainType === 'Event' || mainType === 'Limited') return 'Event';
+            if (mainType === 'Gamepass' || mainType === 'VIP' || mainType === 'Cosmetic' || mainType === 'Admin') return 'Gamepass';
+            return 'Slap';
+        }
+
+        function init() { applyProfile(); setCategory('Slap'); }
+
+        function getStats() {
+            let s = { total: 0, Slap: 0, Badge: 0, Event: 0, Gamepass: 0 };
+            rawData.forEach(i => {
+                if (itemDetails[i.id] && itemDetails[i.id].collected) {
+                    s.total++;
+                    s[getCategory(i.mainType)]++;
+                }
+            });
+            return s;
+        }
+
+        function getCollectionValue() {
+            let totalSlaps = 0;
+            rawData.forEach(i => {
+                if (itemDetails[i.id] && itemDetails[i.id].collected && i.slapsRequired) {
+                    totalSlaps += parseInt(i.slapsRequired.replace(/,/g, '')) || 0;
+                }
+            });
+            return { slaps: totalSlaps };
+        }
+
+        function updateTopStats() {
+            const s = getStats();
+            document.getElementById('display-stats').innerText = `Собрано: ${s.total}`;
+        }
+
+        function setCategory(cat) {
+            playSound('click'); currentFilter = cat;
+            ['Slap', 'Badge', 'Event', 'Gamepass'].forEach(id => {
+                document.getElementById(`btn-${id}`).classList.toggle('active', id === cat);
+            });
+            document.getElementById('search-input').value = ''; renderItems(); updateTopStats();
+        }
+
+        function updateGridSize(val) { document.documentElement.style.setProperty('--card-width', val + 'px'); }
+
+        function renderItems() {
+            const grid = document.getElementById('items-grid'); grid.innerHTML = '';
+            const search = document.getElementById('search-input').value.toLowerCase();
+            
+            let filtered = rawData.filter(i => getCategory(i.mainType) === currentFilter);
+            if (search) filtered = filtered.filter(i => i.id.toLowerCase().includes(search));
+
+            filtered.forEach((item, index) => {
+                const d = itemDetails[item.id] || {}; const card = document.createElement('div');
+                card.style.animationDelay = `${(index % 20) * 0.02}s`;
+                card.className = `sb-card ${d.collected ? 'collected' : ''}`;
+                card.onclick = () => openItemModal(item.id);
+
+                let badgeHtml = `<div class="sb-type-badge type-${currentFilter}">${item.mainType}</div>`;
+                let priceHtml = '';
+                
+                if (item.slapsRequired) priceHtml = `<div class="sb-price-box"><div class="sb-price-col sb-price-slaps">👏 ${item.slapsRequired}</div></div>`;
+                if (item.priceRobux && item.priceRobux !== "N/A") priceHtml = `<div class="sb-price-box"><div class="sb-price-col sb-price-robux">R$ ${item.priceRobux}</div></div>`;
+
+                card.innerHTML = `
+                    <div class="sb-header">${item.id}</div>
+                    <div class="sb-body">
+                        ${badgeHtml}
+                        <div class="sb-desc">${item.reqEn || 'Секретная перчатка'}</div>
+                        ${priceHtml}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openItemModal(id) {
+            playSound('click'); currentEditingId = id; const d = itemDetails[id] || {}; const item = rawData.find(i => i.id === id);
+            document.getElementById('modal-name').innerText = item.id;
+            document.getElementById('modal-type-badge').className = `sb-type-badge type-${getCategory(item.mainType)}`;
+            document.getElementById('modal-type-badge').innerText = item.mainType;
+            
+            document.getElementById('modal-req-text').innerText = item.reqEn || 'Подсказки пока нет.';
+            
+            let pBox = document.getElementById('modal-price-box');
+            if(item.slapsRequired) pBox.innerHTML = `Требуется шлепков: 👏 ${item.slapsRequired}`;
+            else if(item.priceRobux && item.priceRobux !== "N/A") pBox.innerHTML = `Цена: R$ ${item.priceRobux}`;
+            else pBox.innerHTML = '';
+
+            document.getElementById('mod-collected').checked = !!d.collected; 
+            document.getElementById('mod-notes').value = d.notes || '';
+            document.getElementById('item-modal').classList.add('active');
+        }
+
+        function saveItem() {
+            if (!currentEditingId) return; const isColl = document.getElementById('mod-collected').checked; playSound(isColl ? 'success' : 'click');
+            itemDetails[currentEditingId] = { collected: isColl, notes: document.getElementById('mod-notes').value };
+            localStorage.setItem(KEYS.DET, JSON.stringify(itemDetails));
+            updateTopStats(); closeModal('item-modal'); renderItems();
+        }
+
+        function populateTitlesSelect() {
+            const select = document.getElementById('prof-title-select'); select.innerHTML = '';
+            select.add(new Option(TITLES['tit_1'], 'tit_1'));
+            const s = getStats(); const v = getCollectionValue();
+            ACHIEVEMENTS.forEach(ach => { if (ach.chk(s, v)) { select.add(new Option(TITLES[ach.rew], ach.rew)); } });
+            select.value = profile.title || 'tit_1';
+        }
+
+        function applyProfile() {
+            document.getElementById('display-nickname').innerText = profile.name || 'Slapper';
+            if (profile.avatar) document.getElementById('display-avatar').src = profile.avatar;
+            document.body.className = profile.theme || 'theme-dark';
+            document.getElementById('display-title').innerText = TITLES[profile.title || 'tit_1'];
+            updateTopStats();
+        }
+
+        function openProfileModal() {
+            playSound('click');
+            document.getElementById('prof-name').value = profile.name || ''; 
+            document.getElementById('prof-avatar').value = profile.avatar || '';
+            document.getElementById('prof-theme').value = profile.theme || 'theme-dark';
+            populateTitlesSelect();
+            const v = getCollectionValue(); 
+            document.getElementById('prof-val-slaps').innerText = v.slaps.toLocaleString('en-US');
+            document.getElementById('profile-modal').classList.add('active');
+        }
+
+        function openAchievementsModal() {
+            playSound('click'); const container = document.getElementById('full-achievements-container'); container.innerHTML = '';
+            const s = getStats(); const v = getCollectionValue();
+            ACHIEVEMENTS.forEach(ach => {
+                const unlocked = ach.chk(s, v);
+                container.innerHTML += `<div class="achiev-card ${unlocked ? 'unlocked' : ''}"><div class="achiev-icon">${ach.icon}</div><div class="achiev-text"><h4>${ach.title}</h4><p>${ach.desc}</p>${unlocked ? `<div style="color:var(--accent); font-size:10px; font-weight:bold; margin-top:4px;">Награда: ${TITLES[ach.rew]}</div>` : ''}</div></div>`;
+            });
+            document.getElementById('achievements-modal').classList.add('active');
+        }
+
+        function saveProfile() {
+            playSound('click');
+            profile = { name: document.getElementById('prof-name').value || 'Slapper', avatar: document.getElementById('prof-avatar').value, theme: document.getElementById('prof-theme').value, title: document.getElementById('prof-title-select').value };
+            localStorage.setItem(KEYS.PRO, JSON.stringify(profile)); applyProfile(); closeModal('profile-modal');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); currentEditingId = null; }
+        
+        function exportData() {
+            playSound('click'); const data = { profile: localStorage.getItem(KEYS.PRO), details: localStorage.getItem(KEYS.DET) };
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' }); const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'slap_battles_backup.json'; a.click(); URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
+            reader.onload = function(e) { try { const data = JSON.parse(e.target.result); if (data.profile) localStorage.setItem(KEYS.PRO, data.profile); if (data.details) localStorage.setItem(KEYS.DET, data.details); playSound('success'); location.reload(); } catch (err) { alert('Ошибка чтения файла бэкапа!'); } };
+            reader.readAsText(file);
+        }
+
+        init();
+    </script>
+</body>
+</html>
